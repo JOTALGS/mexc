@@ -18,7 +18,7 @@ def main_loop(exchange, symbols, curr_dic):
 
     while True:
         hora_corriente = datetime.utcnow()
-        if hora_corriente.hour == 14 and hora_corriente.minute == 55:
+        if hora_corriente.hour == 13 and hora_corriente.minute == 55:
             start = f'starting loop at: {hora_corriente}'
             print(start)
             info_list.append(start)
@@ -27,7 +27,7 @@ def main_loop(exchange, symbols, curr_dic):
 
     while(True):
         hora_corriente = datetime.utcnow()
-        if hora_corriente.hour == 15 and hora_corriente.minute == 2:
+        if hora_corriente.hour == 14 and hora_corriente.minute == 5:
             finish = f'terminando loop a las: {hora_corriente}'
             print(finish)
             info_list.append(finish)
@@ -40,7 +40,11 @@ def main_loop(exchange, symbols, curr_dic):
 
         start_fetch_time = time.time()
         """ Fetch ticker last price for all currencys """
-        ticker_info = exchange.fetch_tickers(symbols)
+        while (len(ticker_info) > 0):
+            try:
+                ticker_info = exchange.fetch_tickers(symbols)
+            except Exception:
+                pass
         fetch_time = time.time() - start_fetch_time
 
 
@@ -76,7 +80,7 @@ def main_loop(exchange, symbols, curr_dic):
                 if perc > 99:
                     """ ejecutar orden de copra a mercado (key es el simbolo)"""
                     symbol = key
-                    amount = 20
+                    amount = 5
                     if not buy_order:
                         try:
                             buy_order = exchange.create_order(symbol, 'market', 'buy', amount)
@@ -135,7 +139,7 @@ async def main():
     print("│ " + title.center(20) + " │")
     print("└" + "─" * (22) + "┘")
 
-    ##print('hora ahora gmt: ', datetime.utcnow())
+    print('hora ahora gmt: ', datetime.utcnow())
 
     # Create an instance of the MXC exchange
     api_key = 'mx0vglibXYrmSe1rtX'
@@ -150,7 +154,11 @@ async def main():
 
     """ Fetch symbols in the exchange """
 
-    symbols = await get_historic.fetch_candles(exchange)
+    try:
+        with open()
+    except FileNotFoundError:
+        symbols = await get_historic.fetch_candles(exchange)
+    
     print("Running...")
 
     curr_dic = {}
