@@ -6,6 +6,7 @@ import pandas as pd
 import time
 from datetime import datetime
 from pybot import get_historic
+import sys
   
 
 def main_loop(exchange, symbols, curr_dic):
@@ -134,9 +135,12 @@ def main_loop(exchange, symbols, curr_dic):
 
 async def main():
     # Print the title
-    title = 'MEXC bot 0.0'
+    title = 'MEXC bot 1.0'
     print("┌" + "─" * (22) + "┐")
     print("│ " + title.center(20) + " │")
+    print("│ " + "    Elegr opcion    " + " │")
+    print("│ " + "   1-usar archivo   " + " │")
+    print("│ " + "    2-crear nuevo   " + " │")
     print("└" + "─" * (22) + "┘")
 
     print('hora ahora gmt: ', datetime.utcnow())
@@ -150,13 +154,16 @@ async def main():
         'secret': api_secret,
     })
     
-    print('Requesting symbols...')
+
 
     """ Fetch symbols in the exchange """
-
-    try:
-        with open()
-    except FileNotFoundError:
+    
+    opt = input("Opcion: ")
+    if int(opt) == 1:
+        with open('ohlcv.json') as file:
+            symbols = json.load(file)
+    elif int(opt) == 2:
+        print('Requesting symbols...')
         symbols = await get_historic.fetch_candles(exchange)
     
     print("Running...")

@@ -14,7 +14,7 @@ async def fetch_candles(exchange):
     symbols, _= await get_symbols.get_filter_symbols(exchange) ##
 
     fetch_start = datetime.now()
-    minutes_ago = current_datetime - timedelta(minutes=80)
+    minutes_ago = current_datetime - timedelta(minutes=140)
     timestamp = int(minutes_ago.timestamp() * 1000)
 
     symbol_dic = {}
@@ -28,7 +28,7 @@ async def fetch_candles(exchange):
             print(f'{sy} timed out - {e}')
             pass
         i += 1
-        print(f'{i} out of {len(symbols)}')
+        print(f'{i} out of {len(symbols)}', end="\r", flush=True)
 
 
     fetch_time = datetime.now() - fetch_start
