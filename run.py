@@ -15,7 +15,6 @@ def main_loop(exchange, symbols, curr_dic):
     n=0
     info_list = []
     buy_order = None
-    perc_at_buy = 0
 
     while True:
         hora_corriente = datetime.utcnow()
@@ -24,7 +23,8 @@ def main_loop(exchange, symbols, curr_dic):
             print(start)
             info_list.append(start)
             break
-        time.sleep(60) 
+        break
+        time.sleep(60)
 
     while(True):
         hora_corriente = datetime.utcnow()
@@ -40,14 +40,13 @@ def main_loop(exchange, symbols, curr_dic):
         index += 1
 
         start_fetch_time = time.time()
+
         """ Fetch ticker last price for all currencys """
-        while (len(ticker_info) > 0):
-            try:
-                ticker_info = exchange.fetch_tickers(symbols)
-            except Exception:
-                pass
+        ticker_info = fetch_tickers_with_retry(exchange, symbols)
+
         fetch_time = time.time() - start_fetch_time
 
+        #print(ticker_info)
 
         for key in ticker_info.keys():
             price = ticker_info[key]["info"]["lastPrice"]
@@ -78,16 +77,17 @@ def main_loop(exchange, symbols, curr_dic):
                 perc = (last_price - fisrt_price) / fisrt_price * 100
 
                 perc_dic[key] = perc
-                if perc > 99:
+                if perc > 5:
                     """ ejecutar orden de copra a mercado (key es el simbolo)"""
                     symbol = key
-                    amount = 5
+                    print(symbol)
+                    fix_amount = 7
+                    price = last_price
+                    amount = fix_amount / last_price
                     if not buy_order:
-                        try:
-                            buy_order = exchange.create_order(symbol, 'market', 'buy', amount)
-                            perc_at_buy = perc
-                        except Exception as e:
-                            print(f'buy order fail {e}')
+                        buy_order = retry_order(exchange, symbol, 'buy', amount, price)
+                        perc_at_buy = perc
+                        print(f'buy {symbol} at {price}, percent {perc_at_buy}%')
                         try:
                             order = exchange.fetch_order(symbol)
                             info_list.append('buy order status: ' + order)
@@ -100,19 +100,22 @@ def main_loop(exchange, symbols, curr_dic):
                         if info[:31] not in string:
                             info_list.append(info)
                     #print(info)
-                
-                if 2*perc_at_buy < perc:
-                    try:
-                        sell_order = exchange.create_order(symbol, 'market', 'sell', amount)
-                    except Exception as e:
-                        print(f'sell order fail {e}')
-                    
-                    try:
-                        order = exchange.fetch_order(symbol)
-                        info_list.append('sell order status: ' + order)
-                    except Exception as e:
-                        info_list.append(f'fetch_order failed {e}')
-
+                try:
+                    if 2*perc_at_buy < perc:
+                        try:
+                            balance = exchange.fetch_balance()
+                            amount_bal = balance['free']['MX']
+                            sell_order = retry_order(exchange, symbol, 'sell', amount_bal, last_price)
+                        except Exception as e:
+                            print(f'sell order fail {e}')
+                        
+                        try:
+                            order = exchange.fetch_order(symbol)
+                            info_list.append('sell order status: ' + order)
+                        except Exception as e:
+                            info_list.append(f'fetch_order failed {e}')
+                except UnboundLocalError:
+                    pass
             
             max_var =  max(perc_dic.values())
             max_key = [key for key, value in perc_dic.items() if value == max_var][0]
@@ -132,6 +135,29 @@ def main_loop(exchange, symbols, curr_dic):
         for item in info_list:
             file.write(f"{item}\n")
 
+def retry_order(exchange, symbol, side, amount, price):
+    try:
+        order = exchange.create_order(symbol, 'market', side, amount, price)
+        print(f"Sell order placed successfully for {amount} {symbol}")
+        return order
+    except Exception as e:
+        print(f"Error placing {side} of {symbol} order: {e}")
+        print("Retrying in 1 second...")
+        time.sleep(1)
+        retry_order(exchange, symbol, side, amount, price)
+
+def fetch_tickers_with_retry(exchange, symbols, retries=3, delay=1):
+    try:
+        ticker_info = exchange.fetch_tickers(symbols)
+        return ticker_info
+    except Exception as e:
+        print(f"Failed to fetch tickers: {e}")
+        if retries > 0:
+            print(f"Retrying in {delay} seconds...")
+            time.sleep(delay)
+            return fetch_tickers_with_retry(exchange, symbols, retries - 1, delay * 2)
+        else:
+            raise
 
 async def main():
     # Print the title
